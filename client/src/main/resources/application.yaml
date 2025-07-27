@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: poc-web-socket-server
+  main:
+    banner-mode: off
+    web-application-type: none
+
+websocket:
+  url: localhost
+  port: 8080
