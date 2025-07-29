@@ -36,6 +36,7 @@ public class ChatController implements ViewProvider<Region> {
         System.out.println("Message sent: " + message);
         var chatMessage = new ChatMessage();
         chatMessage.setSender(appModel.getUserName());
+        chatMessage.setReceiver(appModel.getUsers().getFirst());
         chatMessage.setContent(message);
         chatMessage.setType(ChatMessage.MessageType.CHAT);
         messageService.sendMessage(chatMessage);

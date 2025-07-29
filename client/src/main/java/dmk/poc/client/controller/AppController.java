@@ -11,6 +11,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static cz.masci.springfx.mvci.util.ConcurrentUtils.runInFXThread;
 
 @Component
@@ -42,6 +45,8 @@ public class AppController implements ViewProvider<Region> {
         @Getter
         @Setter
         private String userName;
+        @Getter
+        private final List<String> users = new ArrayList<>();
         private final BooleanProperty subscribedProperty = new SimpleBooleanProperty(false);
 
         public BooleanProperty subscribedProperty() {

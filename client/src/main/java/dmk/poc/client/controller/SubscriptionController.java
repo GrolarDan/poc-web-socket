@@ -27,7 +27,7 @@ public class SubscriptionController implements ViewProvider<Region> {
 
     private void onSubscribe(String userName) {
         appModel.setUserName(userName);
-        messageService.subscribeToChat(userName, messageConsumer);
+        messageService.subscribeToChat(userName, appModel.getUsers(), messageConsumer);
         appModel.setSubscribed(true);
     }
 }
