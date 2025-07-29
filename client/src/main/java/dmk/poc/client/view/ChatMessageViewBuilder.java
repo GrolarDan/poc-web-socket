@@ -1,6 +1,6 @@
 package dmk.poc.client.view;
 
-import dmk.poc.client.controller.AppController;
+import dmk.poc.client.model.AppModel;
 import dmk.poc.client.model.ChatMessage;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 public class ChatMessageViewBuilder implements Builder<Region> {
 
     @NonNull
-    private final AppController.AppModel appModel;
+    private final AppModel appModel;
     @NonNull
     private final ChatMessage chatMessage;
 

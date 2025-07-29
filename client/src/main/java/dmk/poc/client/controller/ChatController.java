@@ -1,6 +1,7 @@
 package dmk.poc.client.controller;
 
 import cz.masci.springfx.mvci.controller.ViewProvider;
+import dmk.poc.client.model.AppModel;
 import dmk.poc.client.model.ChatMessage;
 import dmk.poc.client.service.MessageService;
 import dmk.poc.client.view.ChatMessageViewBuilder;
@@ -8,16 +9,20 @@ import dmk.poc.client.view.ChatViewBuilder;
 import javafx.scene.layout.Region;
 import lombok.NonNull;
 
+import static cz.masci.springfx.mvci.util.ConcurrentUtils.runInFXThread;
+
 public class ChatController implements ViewProvider<Region> {
 
     private final MessageService messageService;
     @NonNull
-    private final AppController.AppModel appModel;
+    private final AppModel appModel;
+    private final String receiver;
     private final ChatViewBuilder chatViewBuilder;
 
-    public ChatController(@NonNull AppController.AppModel appModel, MessageService messageService) {
+    public ChatController(@NonNull AppModel appModel, String receiver, MessageService messageService) {
         this.messageService = messageService;
         this.appModel = appModel;
+        this.receiver = receiver;
         chatViewBuilder = new ChatViewBuilder(this::onMessageSend, appModel.subscribedProperty());
     }
 
@@ -36,10 +41,11 @@ public class ChatController implements ViewProvider<Region> {
         System.out.println("Message sent: " + message);
         var chatMessage = new ChatMessage();
         chatMessage.setSender(appModel.getUserName());
-        chatMessage.setReceiver(appModel.getUsers().getFirst());
+        chatMessage.setReceiver(receiver);
         chatMessage.setContent(message);
         chatMessage.setType(ChatMessage.MessageType.CHAT);
         messageService.sendMessage(chatMessage);
         clearInput.run(); // Clear the input field after sending
+        runInFXThread(() -> addMessage(chatMessage)); // Add the message to the chat view
     }
 }

@@ -35,50 +35,15 @@ public class MessageService {
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
     }
 
-    public void subscribeToChat(String userName, List<String> users, Consumer<ChatMessage> messageConsumer) {
+    public void subscribeToChat(String userName, Consumer<ChatMessage> onMessageReceived, Consumer<String> onUserAdd) {
         StompSessionHandler sessionHandler = new StompSessionHandlerAdapter() {
             @Override
             public void afterConnected(StompSession session, @NotNull StompHeaders connectedHeaders) {
-                session.subscribe("/queue/private", new StompFrameHandler() {
+                // subscribe
+                session.subscribe("/queue/private", new StompFrameMessageHandler(onMessageReceived));
+                // subscribe to join new user
+                session.subscribe("/topic/public", new StompFrameJoinHandler(onUserAdd));
 
-                    @NotNull
-                    @Override
-                    public Type getPayloadType(@NotNull StompHeaders headers) {
-                        return ChatMessage.class;
-                    }
-
-                    @Override
-                    public void handleFrame(@NotNull StompHeaders headers, Object payload) {
-                        System.out.println("Received message: " + payload);
-                        if (payload instanceof ChatMessage chatMessage) {
-                            System.out.println("It is chat message");
-                            if (ChatMessage.MessageType.JOIN.equals(chatMessage.getType())) {
-                                users.add(chatMessage.getSender());
-                            }
-                            messageConsumer.accept(chatMessage);
-                        }
-                    }
-                });
-                session.subscribe("/topic/public", new StompFrameHandler() {
-
-                    @NotNull
-                    @Override
-                    public Type getPayloadType(@NotNull StompHeaders headers) {
-                        return ChatMessage.class;
-                    }
-
-                    @Override
-                    public void handleFrame(@NotNull StompHeaders headers, Object payload) {
-                        System.out.println("Received message: " + payload);
-                        if (payload instanceof ChatMessage chatMessage) {
-                            System.out.println("It is chat message");
-                            if (ChatMessage.MessageType.JOIN.equals(chatMessage.getType())) {
-                                users.add(chatMessage.getSender());
-                            }
-                            messageConsumer.accept(chatMessage);
-                        }
-                    }
-                });
                 var message = new ChatMessage();
                 message.setType(ChatMessage.MessageType.JOIN_PJ);
                 message.setSender(userName);
@@ -102,5 +67,37 @@ public class MessageService {
         }
         log.info("Sending message: {}", message);
         stompSession.send("/app/chat.sendMessage", message);
+    }
+
+    private record StompFrameJoinHandler(Consumer<String> onAddUser) implements StompFrameHandler {
+        @NotNull
+        @Override
+        public Type getPayloadType(@NotNull StompHeaders headers) {
+            return ChatMessage.class;
+        }
+
+        @Override
+        public void handleFrame(@NotNull StompHeaders headers, Object payload) {
+            if (payload instanceof ChatMessage chatMessage && ChatMessage.MessageType.JOIN.equals(chatMessage.getType())) {
+                onAddUser.accept(chatMessage.getSender());
+            }
+        }
+    }
+
+    private record StompFrameMessageHandler(Consumer<ChatMessage> onMessageReceived) implements StompFrameHandler {
+        @NotNull
+        @Override
+        public Type getPayloadType(@NotNull StompHeaders headers) {
+            return ChatMessage.class;
+        }
+
+        @Override
+        public void handleFrame(@NotNull StompHeaders headers, Object payload) {
+            if (payload instanceof ChatMessage chatMessage) {
+                if (ChatMessage.MessageType.CHAT.equals(chatMessage.getType())) {
+                    onMessageReceived.accept(chatMessage);
+                }
+            }
+        }
     }
 }
