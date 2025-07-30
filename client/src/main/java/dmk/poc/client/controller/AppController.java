@@ -1,8 +1,10 @@
 package dmk.poc.client.controller;
 
 import cz.masci.springfx.mvci.controller.ViewProvider;
+import cz.masci.springfx.mvci.util.builder.BackgroundTaskBuilder;
 import dmk.poc.client.model.AppModel;
 import dmk.poc.client.model.ChatMessage;
+import dmk.poc.client.service.ChatServiceClient;
 import dmk.poc.client.service.MessageService;
 import dmk.poc.client.view.ChatTabViewBuilder;
 import javafx.scene.layout.Region;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static cz.masci.springfx.mvci.util.ConcurrentUtils.runInFXThread;
@@ -20,6 +23,7 @@ import static cz.masci.springfx.mvci.util.ConcurrentUtils.runInFXThread;
 public class AppController implements ViewProvider<Region> {
 
     private final MessageService messageService;
+    private final ChatServiceClient chatServiceClient;
 
     private final Map<String, ChatController> chatControllerMap = new HashMap<>();
     private final AppModel appModel = new AppModel();
@@ -38,10 +42,11 @@ public class AppController implements ViewProvider<Region> {
 
     private void addChatView(String userName) {
         if (!chatControllerMap.containsKey(userName)) {
-            var chatController = new ChatController(appModel, userName, messageService);
-            chatControllerMap.put(userName, chatController);
-            appModel.getUsers().add(userName);
-            appModel.getOnUserAdded().accept(userName, chatController.getView());
+            runInFXThread(() -> {
+                var chatController = new ChatController(appModel, userName, messageService);
+                chatControllerMap.put(userName, chatController);
+                appModel.getOnUserAdded().accept(userName, chatController.getView());
+            });
         }
     }
 
@@ -51,8 +56,15 @@ public class AppController implements ViewProvider<Region> {
 
     private void onSubscribe(String userName) {
         appModel.setUserName(userName);
-        messageService.subscribeToChat(userName, this::addMessage, this::addChatView);
-        appModel.setSubscribed(true);
+        BackgroundTaskBuilder.task(() -> messageService.subscribeToChat(userName, this::addMessage, this::addChatView))
+                .onSucceeded(result -> {
+                    List<String> users = chatServiceClient.getUsers();
+                    if (users != null) {
+                        users.forEach(this::addChatView);
+                    }
+                })
+                .postGuiCall(() -> appModel.setSubscribed(true))
+                .start();
     }
 
 }

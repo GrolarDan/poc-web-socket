@@ -8,18 +8,30 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 @Slf4j
 public class ChatController {
+    private String pjUserName;
     private final List<String> users = new ArrayList<>();
     private final SimpMessagingTemplate messagingTemplate;
+
+    @GetMapping("/chat/pjUserName")
+    public String getPjUserName() {
+        return  pjUserName;
+    }
+
+    @GetMapping("/chat/users")
+    public List<String> getUsers() {
+        return users;
+    }
 
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage) {
@@ -49,10 +61,7 @@ public class ChatController {
         log.info("Adding PJ");
         // Add username in web socket session
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
-        if (chatMessage.getUsers() == null) {
-            chatMessage.setUsers(new ArrayList<>());
-        }
-        chatMessage.getUsers().addAll(users);
+        pjUserName = chatMessage.getSender();
 
         return chatMessage;
     }

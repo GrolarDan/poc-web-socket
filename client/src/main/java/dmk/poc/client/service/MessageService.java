@@ -35,7 +35,7 @@ public class MessageService {
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
     }
 
-    public void subscribeToChat(String userName, Consumer<ChatMessage> onMessageReceived, Consumer<String> onUserAdd) {
+    public StompSession subscribeToChat(String userName, Consumer<ChatMessage> onMessageReceived, Consumer<String> onUserAdd) {
         StompSessionHandler sessionHandler = new StompSessionHandlerAdapter() {
             @Override
             public void afterConnected(StompSession session, @NotNull StompHeaders connectedHeaders) {
@@ -59,14 +59,16 @@ public class MessageService {
             System.out.println("Failed to connect to WebSocket server: " + e.getMessage());
             throw new RuntimeException(e);
         }
+        return stompSession;
     }
 
-    public void sendMessage(ChatMessage message) {
+    public ChatMessage sendMessage(ChatMessage message) {
         if (stompSession == null || !stompSession.isConnected()) {
             throw new IllegalStateException("WebSocket session is not connected");
         }
         log.info("Sending message: {}", message);
         stompSession.send("/app/chat.sendMessage", message);
+        return  message;
     }
 
     private record StompFrameJoinHandler(Consumer<String> onAddUser) implements StompFrameHandler {

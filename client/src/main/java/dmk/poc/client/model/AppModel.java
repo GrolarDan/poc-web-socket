@@ -6,19 +6,13 @@ import javafx.scene.layout.Region;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BiConsumer;
 
 public class AppModel {
-    @Getter
-    private final List<String> users = new ArrayList<>();
     private final BooleanProperty subscribedProperty = new SimpleBooleanProperty(false);
-
     @Getter
     @Setter
     private String userName;
-
     @Getter
     @Setter
     private BiConsumer<String, Region> onUserAdded;

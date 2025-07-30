@@ -1,6 +1,7 @@
 package dmk.poc.client.controller;
 
 import cz.masci.springfx.mvci.controller.ViewProvider;
+import cz.masci.springfx.mvci.util.builder.BackgroundTaskBuilder;
 import dmk.poc.client.model.AppModel;
 import dmk.poc.client.model.ChatMessage;
 import dmk.poc.client.service.MessageService;
@@ -8,8 +9,6 @@ import dmk.poc.client.view.ChatMessageViewBuilder;
 import dmk.poc.client.view.ChatViewBuilder;
 import javafx.scene.layout.Region;
 import lombok.NonNull;
-
-import static cz.masci.springfx.mvci.util.ConcurrentUtils.runInFXThread;
 
 public class ChatController implements ViewProvider<Region> {
 
@@ -23,7 +22,7 @@ public class ChatController implements ViewProvider<Region> {
         this.messageService = messageService;
         this.appModel = appModel;
         this.receiver = receiver;
-        chatViewBuilder = new ChatViewBuilder(this::onMessageSend, appModel.subscribedProperty());
+        chatViewBuilder = new ChatViewBuilder(this::onMessageSend);
     }
 
     @Override
@@ -44,8 +43,10 @@ public class ChatController implements ViewProvider<Region> {
         chatMessage.setReceiver(receiver);
         chatMessage.setContent(message);
         chatMessage.setType(ChatMessage.MessageType.CHAT);
-        messageService.sendMessage(chatMessage);
-        clearInput.run(); // Clear the input field after sending
-        runInFXThread(() -> addMessage(chatMessage)); // Add the message to the chat view
+
+        BackgroundTaskBuilder.task(() -> messageService.sendMessage(chatMessage))
+                .onSucceeded(this::addMessage)
+                .postGuiCall(clearInput)
+                .start();
     }
 }
