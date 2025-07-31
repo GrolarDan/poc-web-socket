@@ -40,7 +40,7 @@ public class MessageService {
             @Override
             public void afterConnected(StompSession session, @NotNull StompHeaders connectedHeaders) {
                 // subscribe
-                session.subscribe("/queue/private", new StompFrameMessageHandler(onMessageReceived));
+                session.subscribe("/user/queue/private", new StompFrameMessageHandler(onMessageReceived));
                 // subscribe to join new user
                 session.subscribe("/topic/public", new StompFrameJoinHandler(onUserAdd));
 
@@ -52,7 +52,7 @@ public class MessageService {
 
         };
 
-        var future = stompClient.connectAsync(webSocketUrl, sessionHandler);
+        var future = stompClient.connectAsync("%s?username=%s".formatted(webSocketUrl, userName), sessionHandler);
         try {
             stompSession = future.get();
         } catch (InterruptedException | ExecutionException e) {

@@ -58,7 +58,7 @@ public class ChatController {
     @SendTo("/topic/public")
     public ChatMessage addPjUser(@Payload ChatMessage chatMessage,
                                  SimpMessageHeaderAccessor headerAccessor) {
-        log.info("Adding PJ");
+        log.info("Adding PJL {}", chatMessage.getSender());
         // Add username in web socket session
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
         pjUserName = chatMessage.getSender();
