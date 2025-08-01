@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,8 +20,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatController {
-    private String pjUserName;
-    private final List<String> users = new ArrayList<>();
+    private volatile String pjUserName;
+    private final List<String> users = Collections.synchronizedList(new ArrayList<>());
     private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/chat/pjUserName")
@@ -38,7 +39,9 @@ public class ChatController {
         log.info("Incoming message: {}", chatMessage);
         // The destination is /queue/private, so the full path for the user is /user/{username}/queue/private
         messagingTemplate.convertAndSendToUser(
-                Objects.requireNonNull(chatMessage.getReceiver()), "/queue/private", chatMessage
+                Objects.requireNonNull(chatMessage.getReceiver(), "Message receiver cannot be null"),
+                "/queue/private",
+                chatMessage
         );
     }
 
@@ -58,7 +61,7 @@ public class ChatController {
     @SendTo("/topic/public")
     public ChatMessage addPjUser(@Payload ChatMessage chatMessage,
                                  SimpMessageHeaderAccessor headerAccessor) {
-        log.info("Adding PJL {}", chatMessage.getSender());
+        log.info("Adding PJ user {}", chatMessage.getSender());
         // Add username in web socket session
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
         pjUserName = chatMessage.getSender();

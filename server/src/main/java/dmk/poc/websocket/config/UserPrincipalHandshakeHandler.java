@@ -14,10 +14,19 @@ public class UserPrincipalHandshakeHandler extends DefaultHandshakeHandler {
     @Override
     protected Principal determineUser(ServerHttpRequest request, WebSocketHandler wsHandler, Map<String, Object> attributes) {
         String username = null;
-        String query = request.getURI().getQuery();
-        if (query != null && query.startsWith("username=")) {
-            username = query.substring("username=".length());
-            log.info("Interceptor username={}", username);
+
+        try {
+            username = org.springframework.web.util.UriComponentsBuilder.fromUri(request.getURI())
+                    .build()
+                    .getQueryParams()
+                    .getFirst("username");
+            if (username != null && !username.trim().isEmpty()) {
+                log.info("Interceptor username={}", username);
+            } else {
+                username = null; // Invalid username
+            }
+        } catch (Exception e) {
+            log.error("Error parsing username from query parameters", e);
         }
 
         return username != null ? new UserPrincipal(username) : null;

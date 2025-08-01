@@ -111,7 +111,7 @@ function addMessage(message) {
         usernameElement.appendChild(usernameText);
         messageElement.appendChild(usernameElement);
     } else {
-        return
+        return;
     }
 
     const textElement = document.createElement('p');
