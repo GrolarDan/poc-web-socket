@@ -1,6 +1,7 @@
 package dmk.poc.client.service;
 
 import dmk.poc.client.model.ChatMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -19,6 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 @Service
+@Slf4j
 public class MessageService {
 
     private final String webSocketUrl;
@@ -33,48 +35,71 @@ public class MessageService {
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
     }
 
-    public void subscribeToChat(String userName, Consumer<ChatMessage> messageConsumer) {
+    public StompSession subscribeToChat(String userName, Consumer<ChatMessage> onMessageReceived, Consumer<String> onUserAdd) {
         StompSessionHandler sessionHandler = new StompSessionHandlerAdapter() {
             @Override
             public void afterConnected(StompSession session, @NotNull StompHeaders connectedHeaders) {
-                session.subscribe("/topic/public", new StompFrameHandler() {
+                // subscribe
+                session.subscribe("/user/queue/private", new StompFrameMessageHandler(onMessageReceived));
+                // subscribe to join new user
+                session.subscribe("/topic/public", new StompFrameJoinHandler(onUserAdd));
 
-                    @NotNull
-                    @Override
-                    public Type getPayloadType(@NotNull StompHeaders headers) {
-                        return ChatMessage.class;
-                    }
-
-                    @Override
-                    public void handleFrame(@NotNull StompHeaders headers, Object payload) {
-                        System.out.println("Received message: " + payload);
-                        if (payload instanceof ChatMessage chatMessage) {
-                            System.out.println("It is chat message");
-                            messageConsumer.accept(chatMessage);
-                        }
-                    }
-                });
                 var message = new ChatMessage();
-                message.setType(ChatMessage.MessageType.JOIN);
+                message.setType(ChatMessage.MessageType.JOIN_PJ);
                 message.setSender(userName);
-                session.send("/app/chat.addUser", message);
+                session.send("/app/chat.addPjUser", message);
             }
 
         };
 
-        var future = stompClient.connectAsync(webSocketUrl, sessionHandler);
+        var future = stompClient.connectAsync("%s?username=%s".formatted(webSocketUrl, userName), sessionHandler);
         try {
             stompSession = future.get();
         } catch (InterruptedException | ExecutionException e) {
             System.out.println("Failed to connect to WebSocket server: " + e.getMessage());
             throw new RuntimeException(e);
         }
+        return stompSession;
     }
 
-    public void sendMessage(ChatMessage message) {
+    public ChatMessage sendMessage(ChatMessage message) {
         if (stompSession == null || !stompSession.isConnected()) {
             throw new IllegalStateException("WebSocket session is not connected");
         }
+        log.info("Sending message: {}", message);
         stompSession.send("/app/chat.sendMessage", message);
+        return  message;
+    }
+
+    private record StompFrameJoinHandler(Consumer<String> onAddUser) implements StompFrameHandler {
+        @NotNull
+        @Override
+        public Type getPayloadType(@NotNull StompHeaders headers) {
+            return ChatMessage.class;
+        }
+
+        @Override
+        public void handleFrame(@NotNull StompHeaders headers, Object payload) {
+            if (payload instanceof ChatMessage chatMessage && ChatMessage.MessageType.JOIN.equals(chatMessage.getType())) {
+                onAddUser.accept(chatMessage.getSender());
+            }
+        }
+    }
+
+    private record StompFrameMessageHandler(Consumer<ChatMessage> onMessageReceived) implements StompFrameHandler {
+        @NotNull
+        @Override
+        public Type getPayloadType(@NotNull StompHeaders headers) {
+            return ChatMessage.class;
+        }
+
+        @Override
+        public void handleFrame(@NotNull StompHeaders headers, Object payload) {
+            if (payload instanceof ChatMessage chatMessage) {
+                if (ChatMessage.MessageType.CHAT.equals(chatMessage.getType())) {
+                    onMessageReceived.accept(chatMessage);
+                }
+            }
+        }
     }
 }

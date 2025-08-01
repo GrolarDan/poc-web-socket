@@ -1,6 +1,6 @@
 package dmk.poc.client.view;
 
-import dmk.poc.client.controller.AppController;
+import dmk.poc.client.model.AppModel;
 import dmk.poc.client.model.ChatMessage;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,23 +16,34 @@ import lombok.RequiredArgsConstructor;
 public class ChatMessageViewBuilder implements Builder<Region> {
 
     @NonNull
-    private final AppController.AppModel appModel;
+    private final AppModel appModel;
     @NonNull
     private final ChatMessage chatMessage;
 
     @Override
     public Region build() {
-        boolean isUser = chatMessage.getSender().equals(appModel.getUserName());
+        if (ChatMessage.MessageType.JOIN.equals(chatMessage.getType())) {
+            TextFlow messageBubble = new TextFlow(new Text("%s has joined the chat".formatted(chatMessage.getSender())));
+            messageBubble.setPadding(new Insets(10));
 
-        TextFlow messageBubble = new TextFlow(new Text(chatMessage.getContent()));
-        messageBubble.setPadding(new Insets(10));
-        messageBubble.setStyle("-fx-background-color: " + (isUser ? "#d1e7dd;" : "#f8d7da;") +
-                " -fx-background-radius: 10;");
+            HBox messageContainer = new HBox(messageBubble);
+            messageContainer.setAlignment(Pos.CENTER);
+            messageContainer.setPadding(new Insets(5));
 
-        HBox messageContainer = new HBox(messageBubble);
-        messageContainer.setAlignment(isUser ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-        messageContainer.setPadding(new Insets(5));
+            return messageContainer;
+        } else {
+            boolean isUser = chatMessage.getSender().equals(appModel.getUserName());
 
-        return messageContainer;
+            TextFlow messageBubble = new TextFlow(new Text(chatMessage.getContent()));
+            messageBubble.setPadding(new Insets(10));
+            messageBubble.setStyle("-fx-background-color: " + (isUser ? "#d1e7dd;" : "#f8d7da;") +
+                    " -fx-background-radius: 10;");
+
+            HBox messageContainer = new HBox(messageBubble);
+            messageContainer.setAlignment(isUser ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
+            messageContainer.setPadding(new Insets(5));
+
+            return messageContainer;
+        }
     }
 }

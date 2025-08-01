@@ -26,7 +26,7 @@ public class JavaFxApplication extends Application {
         var appController = applicationContext.getBean(AppController.class);
 
         Scene scene = new Scene(appController.getView(), 800, 600);
-        stage.setTitle("Aplikace Dračí Doupě");
+        stage.setTitle("Aplikace Dračí Doupě - Chatovací klient");
         stage.setScene(scene);
         stage.show();
     }

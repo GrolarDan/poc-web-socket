@@ -1,6 +1,5 @@
 package dmk.poc.client.view;
 
-import javafx.beans.property.BooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ScrollPane;
@@ -19,8 +18,6 @@ public class ChatViewBuilder implements Builder<VBox> {
 
     @NonNull
     private final BiConsumer<String, Runnable> onMessageSend;
-    @NonNull
-    private final BooleanProperty isSubscribed;
     private VBox chatBox;
 
     @Override
@@ -55,7 +52,6 @@ public class ChatViewBuilder implements Builder<VBox> {
         // Main layout
         VBox root = new VBox(10, scrollPane, inputBox);
         root.setStyle("-fx-background-color: #ffffff;");
-        root.visibleProperty().bind(isSubscribed);
 
         return root;
     }

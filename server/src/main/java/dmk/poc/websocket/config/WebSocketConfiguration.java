@@ -14,7 +14,10 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // /portfolio is the HTTP URL for the endpoint to which a WebSocket (or SockJS)
         // client needs to connect for the WebSocket handshake
-        registry.addEndpoint("/ws").withSockJS();
+        registry.addEndpoint("/ws")
+//                .addInterceptors(new UserHandshakeInterceptor())
+                .setHandshakeHandler(new UserPrincipalHandshakeHandler())
+                .withSockJS();
     }
 
     @Override
@@ -24,6 +27,6 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
         config.setApplicationDestinationPrefixes("/app");
         // Use the built-in message broker for subscriptions and broadcasting and
         // route messages whose destination header begins with /topic or /queue to the broker
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/topic", "/queue");
     }
 }
